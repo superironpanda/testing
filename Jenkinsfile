@@ -1,25 +1,43 @@
-pipeline {
-   agent any
+node {
+   def mvnHome = tool 'M3'
 
-   stages {
-    stage('Checkout Code') { 
+   stage('Checkout Code') { 
       git 'https://github.com/maping/java-maven-calculator-web-app.git'
    }
-      stage('Build') {
-        steps {
-          echo 'Building...'
-          echo "Running ${env.BUILD_ID} ${env.BUILD_DISPLAY_NAME} on ${env.NODE_NAME} and JOB ${env.JOB_NAME}"
-        }
+   stage('JUnit Test') {
+      if (isUnix()) {
+         sh "'${mvnHome}/bin/mvn' clean test"
+      } else {
+         bat(/"${mvnHome}\bin\mvn" clean test/)
+      }
    }
-   stage('Test') {
-     steps {
-        echo 'Testing...'
-     }
+   stage('Integration Test') {
+      if (isUnix()) {
+         sh "'${mvnHome}/bin/mvn' integration-test"
+      } else {
+         bat(/"${mvnHome}\bin\mvn" integration-test/)
+      }
+   }
+ /*
+   stage('Performance Test') {
+      if (isUnix()) {
+         sh "'${mvnHome}/bin/mvn' cargo:start verify cargo:stop"
+      } else {
+         bat(/"${mvnHome}\bin\mvn" cargo:start verify cargo:stop/)
+      }
+   }
+  */
+  stage('Performance Test') {
+      if (isUnix()) {
+         sh "'${mvnHome}/bin/mvn' verify"
+      } else {
+         bat(/"${mvnHome}\bin\mvn" verify/)
+      }
    }
    stage('Deploy') {
-     steps {
-       echo 'Deploying...'
-     }
+      timeout(time: 10, unit: 'MINUTES') {
+           input message: 'Deploy this web app to production ?'
+      }
+      echo 'Deploy...'
    }
-  }
 }
